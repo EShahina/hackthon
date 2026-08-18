@@ -17,17 +17,23 @@ import { CATEGORY_META, DIFFICULTY_META } from '../data/topics.js';
 import { InterestInferenceEngine } from '../engine/inference.js';
 import { RecommendationEngine } from '../engine/recommender.js';
 import { security } from '../engine/security.js';
+import { InteractionTracker } from '../engine/tracker.js';
+import { StudentProfileBuilder } from '../engine/profile.js';
 
 class ReelMindApp {
   constructor() {
-    this.selectedReels = new Set();           // Set of selected reel IDs
-    this.inferenceEngine = new InterestInferenceEngine();  // Interest analysis engine
-    this.recommender = new RecommendationEngine();         // Recommendation engine
-    this.analysisResult = null;               // Output from inference engine
-    this.recommendations = [];                // Output from recommender
-    this.isAnalyzing = false;                 // Prevents concurrent analysis
-    this.autoAnalyzeTimer = null;             // Debounce timer for auto-analyze
-    this.analysisCache = new Map();           // Memoization cache for analysis results
+    this.selectedReels = new Set();
+    this.inferenceEngine = new InterestInferenceEngine();
+    this.recommender = new RecommendationEngine();
+    this.tracker = new InteractionTracker();
+    this.analysisResult = null;
+    this.recommendations = [];
+    this.studentProfile = null;
+    this.isAnalyzing = false;
+    this.autoAnalyzeTimer = null;
+    this.analysisCache = new Map();
+    this.watchTimers = new Map();
+    this.highContrast = false;
 
     this.init();
   }
@@ -39,6 +45,9 @@ class ReelMindApp {
     this.renderReelsFeed();
     this.setupEventListeners();
     this.updateSelectionCount();
+    this.setupAccessibility();
+    this.setupKeyboardShortcuts();
+    this.setupWatchTracking();
   }
 
   /**
@@ -80,7 +89,21 @@ class ReelMindApp {
             <p class="reel-description">${reel.description}</p>
             <div class="reel-meta">
               <span class="reel-category-badge">${reel.category}</span>
-              <span class="reel-stats">❤️ ${reel.likes} · 👁️ ${reel.views}</span>
+              <span class="reel-stats">${reel.likes} likes</span>
+            </div>
+            <div class="reel-actions" onclick="event.stopPropagation()">
+              <button class="reel-action-btn like-btn" data-reel-id="${reel.id}" title="Like" aria-label="Like this reel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+              <button class="reel-action-btn save-btn" data-reel-id="${reel.id}" title="Save" aria-label="Save this reel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+              <button class="reel-action-btn share-btn" data-reel-id="${reel.id}" title="Share" aria-label="Share this reel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              </button>
+              <button class="reel-action-btn skip-btn" data-reel-id="${reel.id}" title="Skip" aria-label="Skip this reel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -148,6 +171,28 @@ class ReelMindApp {
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', () => this.selectAllReels());
     }
+
+    // Interaction buttons (like, save, share, skip)
+    grid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.reel-action-btn');
+      if (!btn) return;
+      e.stopPropagation();
+      const reelId = btn.dataset.reelId;
+      if (btn.classList.contains('like-btn')) {
+        const liked = this.tracker.toggleLike(reelId);
+        btn.classList.toggle('active', liked);
+      } else if (btn.classList.contains('save-btn')) {
+        const saved = this.tracker.toggleSave(reelId);
+        btn.classList.toggle('active', saved);
+      } else if (btn.classList.contains('share-btn')) {
+        this.tracker.share(reelId);
+        btn.classList.add('active');
+      } else if (btn.classList.contains('skip-btn')) {
+        this.tracker.skip(reelId);
+        const card = document.querySelector(`[data-reel-id="${reelId}"]`);
+        if (card) card.classList.add('skipped');
+      }
+    });
   }
 
   /**
@@ -344,6 +389,14 @@ class ReelMindApp {
       this.renderAnalysis();
       console.log('[App] Recommendations generated:', this.recommendations.length);
       this.renderRecommendations();
+
+      // Build student profile from inference + tracker data
+      const trackerStats = this.tracker.getStats();
+      this.studentProfile = StudentProfileBuilder.build(
+        this.analysisResult, trackerStats, this.recommendations
+      );
+      this.renderStudentProfile();
+      this.renderAnalytics();
     } catch (error) {
       console.error('Analysis failed:', error);
       security.logEvent('analysis_error', { error: error.message });
@@ -655,6 +708,224 @@ class ReelMindApp {
    */
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Setup watch time tracking on video elements
+   */
+  setupWatchTracking() {
+    document.addEventListener('mouseenter', (e) => {
+      const card = e.target.closest('.reel-card');
+      if (!card) return;
+      const reelId = card.dataset.reelId;
+      this.tracker.trackReel(reelId);
+      const video = card.querySelector('video');
+      if (video) {
+        const startTime = Date.now();
+        this.watchTimers.set(reelId, { start: startTime, video });
+        video.addEventListener('timeupdate', this._onTimeUpdate);
+      }
+    }, true);
+
+    document.addEventListener('mouseleave', (e) => {
+      const card = e.target.closest('.reel-card');
+      if (!card) return;
+      const reelId = card.dataset.reelId;
+      const timer = this.watchTimers.get(reelId);
+      if (timer) {
+        const elapsed = Date.now() - timer.start;
+        this.tracker.addWatchTime(reelId, elapsed);
+        if (timer.video && timer.video.duration) {
+          const pct = (timer.video.currentTime / timer.video.duration) * 100;
+          this.tracker.updateWatchPercent(reelId, pct);
+        }
+        this.watchTimers.delete(reelId);
+      }
+    }, true);
+  }
+
+  _onTimeUpdate(e) {
+    const video = e.target;
+    const card = video.closest('.reel-card');
+    if (!card) return;
+    const reelId = card.dataset.reelId;
+    if (video.duration) {
+      const pct = (video.currentTime / video.duration) * 100;
+      if (window.app) window.app.tracker.updateWatchPercent(reelId, pct);
+    }
+  }
+
+  /**
+   * Setup accessibility features
+   */
+  setupAccessibility() {
+    const toggle = document.getElementById('contrast-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        this.highContrast = !this.highContrast;
+        document.body.classList.toggle('high-contrast', this.highContrast);
+        toggle.setAttribute('aria-pressed', this.highContrast);
+      });
+    }
+  }
+
+  /**
+   * Setup keyboard shortcuts
+   */
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch(e.key) {
+        case 'a': this.selectAllReels(); break;
+        case 't': this.selectTrapReels(); break;
+        case 'r': this.resetAll(); break;
+        case 'c':
+          if (!e.ctrlKey && !e.metaKey) {
+            const toggle = document.getElementById('contrast-toggle');
+            if (toggle) toggle.click();
+          }
+          break;
+      }
+    });
+  }
+
+  /**
+   * Render analytics dashboard
+   */
+  renderAnalytics() {
+    const container = document.getElementById('analytics-content');
+    if (!container) return;
+
+    const stats = this.tracker.getStats();
+    const dist = this.tracker.getCategoryDistribution(SAMPLE_REELS);
+
+    container.innerHTML = `
+      <div class="analytics-grid animate-in">
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">📊</div>
+          <div class="analytics-value">${stats.watched}</div>
+          <div class="analytics-label">Reels Tracked</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">⏱️</div>
+          <div class="analytics-value">${stats.totalWatchTimeSec}s</div>
+          <div class="analytics-label">Watch Time</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">🎯</div>
+          <div class="analytics-value">${stats.engagementScore}%</div>
+          <div class="analytics-label">Engagement</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">📈</div>
+          <div class="analytics-value">${stats.semanticDepth}%</div>
+          <div class="analytics-label">Semantic Depth</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">🔄</div>
+          <div class="analytics-value">${stats.retentionRate}%</div>
+          <div class="analytics-label">Retention</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">❤️</div>
+          <div class="analytics-value">${stats.likes}</div>
+          <div class="analytics-label">Likes</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">💾</div>
+          <div class="analytics-value">${stats.saves}</div>
+          <div class="analytics-label">Saves</div>
+        </div>
+        <div class="analytics-card glass-card">
+          <div class="analytics-icon">⏭️</div>
+          <div class="analytics-value">${stats.skips}</div>
+          <div class="analytics-label">Skips</div>
+        </div>
+      </div>
+      ${Object.keys(dist).length > 0 ? `
+        <div class="analytics-section glass-card animate-in" style="animation-delay: 0.3s">
+          <h3 class="section-subtitle">Interest Distribution</h3>
+          <div class="distribution-bars">
+            ${Object.entries(dist).sort((a, b) => b[1] - a[1]).map(([cat, count]) => {
+              const maxCount = Math.max(...Object.values(dist));
+              const pct = Math.round((count / maxCount) * 100);
+              return `
+                <div class="dist-row">
+                  <span class="dist-label">${cat}</span>
+                  <div class="dist-bar"><div class="dist-fill" style="width: ${pct}%"></div></div>
+                  <span class="dist-count">${count}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  /**
+   * Render student profile panel
+   */
+  renderStudentProfile() {
+    const container = document.getElementById('profile-content');
+    if (!container || !this.studentProfile) return;
+
+    const p = this.studentProfile;
+
+    container.innerHTML = `
+      <div class="profile-summary glass-card animate-in">
+        <div class="profile-header">
+          <div class="profile-icon">🎓</div>
+          <div>
+            <h3>Student Profile</h3>
+            <p class="profile-trajectory">${p.trajectory}</p>
+          </div>
+        </div>
+        <div class="profile-meta">
+          <span class="confidence-badge confidence-${p.overallConfidence.toLowerCase()}">Confidence: ${p.overallConfidence}</span>
+          <span class="learning-style-badge">Style: ${p.learningStyle}</span>
+        </div>
+      </div>
+
+      <div class="profile-text glass-card animate-in" style="animation-delay: 0.1s">
+        <p>${p.summary}</p>
+      </div>
+
+      ${p.compoundInterest ? `
+        <div class="trap-explanation glass-card animate-in" style="animation-delay: 0.15s">
+          <h4>Why this matters</h4>
+          <p>A naive algorithm would see "Java meme" and recommend only Java syntax tutorials. Instead, ReelMind detected that you also watched SWE lifestyle, interview jokes, and laptop comparisons — revealing a broader <strong>${p.compoundInterest.label}</strong> interest.</p>
+          <p class="explanation-detail">${p.compoundInterest.description}</p>
+        </div>
+      ` : ''}
+
+      <div class="profile-readiness glass-card animate-in" style="animation-delay: 0.2s">
+        <h3 class="section-subtitle">Category Readiness</h3>
+        ${Object.entries(p.readinessScores).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([cat, score], i) => `
+          <div class="readiness-row">
+            <span class="readiness-label">${cat}</span>
+            <div class="readiness-bar">
+              <div class="readiness-fill" style="width: ${score}%; background: ${this.getClusterColor(i)}"></div>
+            </div>
+            <span class="readiness-value">${score}%</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="profile-next-steps glass-card animate-in" style="animation-delay: 0.3s">
+        <h3 class="section-subtitle">Recommended Next Steps</h3>
+        ${p.nextSteps.map((step, i) => `
+          <div class="next-step-item">
+            <span class="step-number">${i + 1}</span>
+            <div>
+              <strong>${step.label}</strong>
+              <p>${step.description}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 }
 
