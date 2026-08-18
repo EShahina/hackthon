@@ -16,6 +16,7 @@ import { SAMPLE_REELS } from '../data/reels.js';
 import { CATEGORY_META, DIFFICULTY_META } from '../data/topics.js';
 import { InterestInferenceEngine } from '../engine/inference.js';
 import { RecommendationEngine } from '../engine/recommender.js';
+import { security } from '../engine/security.js';
 
 class ReelMindApp {
   constructor() {
@@ -26,6 +27,7 @@ class ReelMindApp {
     this.recommendations = [];                // Output from recommender
     this.isAnalyzing = false;                 // Prevents concurrent analysis
     this.autoAnalyzeTimer = null;             // Debounce timer for auto-analyze
+    this.analysisCache = new Map();           // Memoization cache for analysis results
 
     this.init();
   }
@@ -267,6 +269,14 @@ class ReelMindApp {
   async runAnalysis() {
     if (this.selectedReels.size === 0 || this.isAnalyzing) return;
 
+    // Security: Rate limit check
+    const rateCheck = security.checkAnalysisRateLimit();
+    if (!rateCheck.allowed) {
+      console.warn('[Security] Rate limit exceeded. Please wait before analyzing again.');
+      security.logEvent('rate_limit_exceeded', { remaining: rateCheck.remaining });
+      return;
+    }
+
     this.isAnalyzing = true;
     const analyzeBtn = document.getElementById('analyze-btn');
     analyzeBtn.classList.add('loading');
@@ -284,18 +294,59 @@ class ReelMindApp {
       // Get selected Reel objects from the full dataset
       const selectedReelObjects = SAMPLE_REELS.filter(r => this.selectedReels.has(r.id));
 
-      // Phase 1: Run interest inference (extract signals → aggregate clusters → detect compound patterns)
-      this.analysisResult = this.inferenceEngine.analyze(selectedReelObjects);
-      this.renderAnalysis();
+      // Security: Validate input reels
+      for (const reel of selectedReelObjects) {
+        const validation = security.validateReel(reel);
+        if (!validation.valid) {
+          console.warn(`[Security] Invalid reel data for ${reel.id}:`, validation.errors);
+          security.logEvent('invalid_reel_input', { id: reel.id, errors: validation.errors });
+        }
+      }
 
-      // Phase 2: Run recommendation engine (filter hype → score candidates → diversify → format)
-      this.recommendations = this.recommender.recommend(
-        this.analysisResult, selectedReelObjects, 5
-      );
-      console.log('[App] Recommendations generated:', this.recommendations.length, this.recommendations.map(r => r.recommendedReel));
+      // Efficiency: Check memoization cache
+      const cacheKey = [...this.selectedReels].sort().join(',');
+      if (this.analysisCache.has(cacheKey)) {
+        console.log('[Cache] Using cached analysis result');
+        const cached = this.analysisCache.get(cacheKey);
+        this.analysisResult = cached.profile;
+        this.recommendations = cached.recs;
+      } else {
+        // Phase 1: Run interest inference
+        this.analysisResult = this.inferenceEngine.analyze(selectedReelObjects);
+
+        // Security: Validate profile output
+        const profileValidation = security.validateProfile(this.analysisResult);
+        if (!profileValidation.valid) {
+          security.logEvent('invalid_profile_output', { errors: profileValidation.errors });
+        }
+
+        // Phase 2: Run recommendation engine
+        this.recommendations = this.recommender.recommend(
+          this.analysisResult, selectedReelObjects, 5
+        );
+
+        // Security: Validate recommendations
+        for (const rec of this.recommendations) {
+          const recValidation = security.validateRecommendation(rec);
+          if (!recValidation.valid) {
+            security.logEvent('invalid_recommendation', { errors: recValidation.errors });
+          }
+        }
+
+        // Cache the result (max 50 entries)
+        if (this.analysisCache.size > 50) {
+          const firstKey = this.analysisCache.keys().next().value;
+          this.analysisCache.delete(firstKey);
+        }
+        this.analysisCache.set(cacheKey, { profile: this.analysisResult, recs: this.recommendations });
+      }
+
+      this.renderAnalysis();
+      console.log('[App] Recommendations generated:', this.recommendations.length);
       this.renderRecommendations();
     } catch (error) {
       console.error('Analysis failed:', error);
+      security.logEvent('analysis_error', { error: error.message });
       this.showLoadingState('analysis-content', 'Analysis failed. Please try again.');
       this.showLoadingState('recommendations-content', 'Could not generate recommendations.');
     } finally {

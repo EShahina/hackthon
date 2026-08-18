@@ -20,6 +20,10 @@ export class InterestInferenceEngine {
     this.intentSignals = {};          // Tracked: intentSignal → {count, reels[]}
     this.detectedPatterns = [];       // Output: matched COMPOUND_PATTERNS with confidence
     this.interestProfile = null;      // Final structured profile for recommender
+
+    // Efficiency: Memoization caches
+    this._topicClusterCache = new Map();  // Cache topic → cluster mappings
+    this._signalStrengthCache = new Map(); // Cache signal strength computations
   }
 
   /**
@@ -100,7 +104,7 @@ export class InterestInferenceEngine {
    */
   _aggregateClusters() {
     for (const [topic, data] of Object.entries(this.topicScores)) {
-      const clusters = TOPIC_TO_CLUSTER[topic] || [];
+      const clusters = this._getClustersForTopic(topic);
       for (const clusterId of clusters) {
         if (!this.clusterScores[clusterId]) {
           this.clusterScores[clusterId] = {
@@ -230,7 +234,7 @@ export class InterestInferenceEngine {
     // Find which clusters this Reel contributes to
     const contributedClusters = new Set();
     for (const topic of topics) {
-      const clusters = TOPIC_TO_CLUSTER[topic] || [];
+      const clusters = this._getClustersForTopic(topic);
       clusters.forEach(c => contributedClusters.add(c));
     }
 
@@ -303,13 +307,32 @@ export class InterestInferenceEngine {
     };
   }
 
+  _getClustersForTopic(topic) {
+    if (this._topicClusterCache.has(topic)) {
+      return this._topicClusterCache.get(topic);
+    }
+    const clusters = TOPIC_TO_CLUSTER[topic] || [];
+    this._topicClusterCache.set(topic, clusters);
+    return clusters;
+  }
+
   _calculateSignalStrength(signals) {
     if (!signals) return 0;
+
+    // Efficiency: Memoize based on signal combination
+    const cacheKey = `${signals.topicDepth}|${signals.intentSignal}|${signals.careerRelevance}|${signals.learningValue}`;
+    if (this._signalStrengthCache.has(cacheKey)) {
+      return this._signalStrengthCache.get(cacheKey);
+    }
+
     const depthWeight = SIGNAL_WEIGHTS.topicDepth[signals.topicDepth] || 0;
     const intentWeight = SIGNAL_WEIGHTS.intentSignal[signals.intentSignal] || 0;
     const careerWeight = SIGNAL_WEIGHTS.careerRelevance[signals.careerRelevance] || 0;
     const learningWeight = SIGNAL_WEIGHTS.learningValue[signals.learningValue] || 0;
-    return (depthWeight * 0.25 + intentWeight * 0.3 + careerWeight * 0.25 + learningWeight * 0.2);
+    const result = (depthWeight * 0.25 + intentWeight * 0.3 + careerWeight * 0.25 + learningWeight * 0.2);
+
+    this._signalStrengthCache.set(cacheKey, result);
+    return result;
   }
 
   /**

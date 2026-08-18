@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ReelMind — Test Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a1a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; padding: 20px; }
+    h1 { color: #a78bfa; margin-bottom: 4px; font-size: 1.4rem; }
+    .subtitle { color: #666; font-size: 0.8rem; margin-bottom: 20px; }
+    .controls { margin-bottom: 20px; }
+    button { background: #7c3aed; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-family: inherit; font-size: 0.85rem; cursor: pointer; font-weight: 600; }
+    button:hover { background: #6d28d9; }
+    button:disabled { background: #333; cursor: not-allowed; }
+    .summary { padding: 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; }
+    .summary.all-pass { background: #0a2e1a; border: 1px solid #22c55e; }
+    .summary.has-fail { background: #2e0a0a; border: 1px solid #ef4444; }
+    .summary h2 { font-size: 1rem; margin-bottom: 8px; }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+    .stat { font-size: 0.8rem; }
+    .stat.pass { color: #22c55e; }
+    .stat.fail { color: #ef4444; }
+    .stat.skip { color: #eab308; }
+    .stat.time { color: #60a5fa; }
+    .suite h3 { color: #a78bfa; font-size: 0.9rem; margin: 16px 0 4px; }
+    .test { padding: 4px 8px; font-size: 0.78rem; border-left: 3px solid transparent; margin: 2px 0; }
+    .test.pass { border-left-color: #22c55e; color: #86efac; }
+    .test.fail { border-left-color: #ef4444; color: #fca5a5; }
+    .test.skipped { border-left-color: #eab308; color: #fde047; }
+    .time { color: #555; font-size: 0.7rem; margin-left: 8px; }
+    .error { background: #1a0a0a; padding: 8px; border-radius: 4px; margin: 4px 0 8px; font-size: 0.72rem; color: #fca5a5; white-space: pre-wrap; overflow-x: auto; }
+    a { color: #a78bfa; }
+  </style>
+</head>
+<body>
+  <h1>ReelMind — Test Suite</h1>
+  <p class="subtitle">Unit tests, integration tests, and security tests</p>
+
+  <div class="controls">
+    <button id="run-btn" onclick="runTests()">Run All Tests</button>
+    <a href="index.html" style="margin-left: 12px; font-size: 0.8rem;">← Back to App</a>
+  </div>
+
+  <div id="test-summary"></div>
+  <div id="test-output"></div>
+
+  <script type="module">
+    import { runner } from './tests/framework.js';
+    import './tests/test-data.js';
+    import './tests/test-inference.js';
+    import './tests/test-recommender.js';
+    import './tests/test-security.js';
+    import './tests/test-integration.js';
+
+    window.runTests = async function() {
+      const btn = document.getElementById('run-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      document.getElementById('test-output').innerHTML = '';
+      document.getElementById('test-summary').innerHTML = '';
+
+      await runner.runAll();
+
+      btn.disabled = false;
+      btn.textContent = 'Run All Tests';
+    };
+
+    // Auto-run on load
+    window.addEventListener('DOMContentLoaded', () => runTests());
+  </script>
+</body>
+</html>
