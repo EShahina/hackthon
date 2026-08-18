@@ -40,7 +40,7 @@
   <h1>ReelMind — Test Suite</h1>
   <p class="subtitle">Unit tests, integration tests, and security tests</p>
   <div class="controls">
-    <button id="run-btn" onclick="window._run()">Run All Tests</button>
+    <button id="run-btn">Run All Tests</button>
     <a href="index.html">← Back to App</a>
   </div>
   <div id="status">Click "Run All Tests" to start</div>
@@ -434,6 +434,7 @@
   }
 
   window._run = runTests;
+  document.getElementById('run-btn').addEventListener('click', runTests);
   </script>
 </body>
 </html>
