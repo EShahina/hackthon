@@ -62,9 +62,9 @@ class ReelMindApp {
         <div class="reel-card-inner">
           <div class="reel-thumbnail">
             ${isYouTube
-              ? `<img class="reel-yt-thumb" src="${thumbnailUrl}" alt="${reel.title}" onclick="window.open('${reel.videoUrl}', '_blank'); event.stopPropagation();" /><div class="reel-yt-play" onclick="window.open('${reel.videoUrl}', '_blank'); event.stopPropagation();"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="22" fill="rgba(0,0,0,0.6)"/><polygon points="18,14 36,24 18,34" fill="white"/></svg></div>`
+              ? `<img class="reel-yt-thumb" src="${thumbnailUrl}" alt="${reel.title}" onclick="window.open('${reel.videoUrl}', '_blank'); setTimeout(() => this.closest('.reel-card').click(), 100);" /><div class="reel-yt-play" onclick="window.open('${reel.videoUrl}', '_blank'); setTimeout(() => this.closest('.reel-card').click(), 100);"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="22" fill="rgba(0,0,0,0.6)"/><polygon points="18,14 36,24 18,34" fill="white"/></svg></div>`
               : reel.videoUrl
-                ? `<video class="reel-video" src="${reel.videoUrl}" muted loop preload="metadata" onclick="this.paused ? this.play() : this.pause(); event.stopPropagation();"></video>`
+                ? `<video class="reel-video" src="${reel.videoUrl}" muted loop preload="metadata" onclick="event.stopPropagation(); this.closest('.reel-card').click();"></video>`
                 : `<span class="reel-emoji">${reel.thumbnail}</span>`
             }
             <span class="reel-duration">${reel.duration}</span>

@@ -34,6 +34,7 @@
     .time { color: #555; font-size: 0.7rem; margin-left: 8px; }
     .error { background: #1a0a0a; padding: 8px; border-radius: 4px; margin: 4px 0 8px; font-size: 0.72rem; color: #fca5a5; white-space: pre-wrap; overflow-x: auto; }
     a { color: #a78bfa; }
+    .loading-msg { color: #a78bfa; font-size: 0.85rem; padding: 20px; }
   </style>
 </head>
 <body>
@@ -41,7 +42,7 @@
   <p class="subtitle">Unit tests, integration tests, and security tests</p>
 
   <div class="controls">
-    <button id="run-btn" onclick="runTests()">Run All Tests</button>
+    <button id="run-btn" onclick="window._rerunTests && window._rerunTests()">Run All Tests</button>
     <a href="index.html" style="margin-left: 12px; font-size: 0.8rem;">← Back to App</a>
   </div>
 
@@ -56,21 +57,29 @@
     import './tests/test-security.js';
     import './tests/test-integration.js';
 
-    window.runTests = async function() {
+    async function runAllTests() {
       const btn = document.getElementById('run-btn');
       btn.disabled = true;
       btn.textContent = 'Running...';
       document.getElementById('test-output').innerHTML = '';
       document.getElementById('test-summary').innerHTML = '';
 
-      await runner.runAll();
+      try {
+        await runner.runAll();
+      } catch (err) {
+        document.getElementById('test-summary').innerHTML =
+          '<div class="summary has-fail"><h2>Runner Error</h2><pre class="error">' + err.message + '</pre></div>';
+      }
 
       btn.disabled = false;
       btn.textContent = 'Run All Tests';
-    };
+    }
 
-    // Auto-run on load
-    window.addEventListener('DOMContentLoaded', () => runTests());
+    // Expose for button
+    window._rerunTests = runAllTests;
+
+    // Auto-run immediately (module scripts are deferred, DOM is ready)
+    runAllTests();
   </script>
 </body>
 </html>
