@@ -1,0 +1,13 @@
+{
+  "name": "reelmind",
+  "version": "1.0.0",
+  "description": "ReelMind — AI-Powered Tech Reels Recommendation Agent",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "start": "npx serve . -l 3000"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

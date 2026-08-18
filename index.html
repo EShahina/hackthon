@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ReelMind — AI-powered recommendation agent that analyzes student Reels interactions, infers deep interests, and recommends engaging technology content.">
+  <meta name="theme-color" content="#1a1a2e">
+  
+  <title>ReelMind — AI-Powered Tech Reels Recommendation Agent</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- === Header === -->
+    <header class="app-header">
+      <div class="logo-container">
+        <div class="logo-icon" aria-hidden="true">🧠</div>
+        <h1 class="logo-text">ReelMind</h1>
+      </div>
+      <p class="app-tagline">
+        AI-powered recommendation agent that analyzes your Reels interactions, 
+        <strong>infers your deeper interests</strong>, and recommends engaging 
+        tech content — turning mindless scrolling into <strong>meaningful learning</strong>.
+      </p>
+    </header>
+
+    <!-- === Reels Feed Section === -->
+    <section class="reels-section" aria-label="Sample Reels Feed">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="icon" aria-hidden="true">📱</span>
+          Student's Reel Feed
+          <span class="selection-count" id="selection-count" aria-live="polite">0</span>
+        </h2>
+        <div class="quick-actions">
+          <button class="btn-quick trap" id="trap-btn" title="Select the 4 trap Reels (Java meme + SWE lifestyle + Interview joke + Laptop review)">
+            ⚡ Select Trap Scenario
+          </button>
+          <button class="btn-quick" id="select-all-btn" title="Select all 8 Reels">
+            ✅ Select All
+          </button>
+        </div>
+      </div>
+      
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: var(--space-lg);">
+        Click Reels to simulate what a student has watched. Then hit <strong>Analyze</strong> to see the AI agent infer interests.
+      </p>
+      
+      <div class="reels-grid" id="reels-grid" role="group" aria-label="Selectable Reels">
+        <!-- Populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- === Action Buttons === -->
+    <div class="analyze-section">
+      <button class="btn-analyze" id="analyze-btn" disabled aria-label="Analyze selected Reels">
+        <span class="btn-icon" aria-hidden="true">🧠</span>
+        <span class="btn-text">Select Reels to Analyze</span>
+      </button>
+      <button class="btn-reset" id="reset-btn" aria-label="Reset all selections and results">
+        ↺ Reset
+      </button>
+    </div>
+
+    <!-- === Results Section === -->
+    <section class="results-section" id="results-section" aria-label="Analysis Results">
+      <div class="results-grid">
+        
+        <!-- Analysis Panel -->
+        <div class="results-panel" id="analysis-panel">
+          <div class="panel-header">
+            <span class="panel-icon" aria-hidden="true">🔍</span>
+            <h2 class="panel-title">Interest Analysis</h2>
+          </div>
+          <div id="analysis-content">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Recommendations Panel -->
+        <div class="results-panel" id="recommendations-panel">
+          <div class="panel-header">
+            <span class="panel-icon" aria-hidden="true">🎬</span>
+            <h2 class="panel-title">Recommendations</h2>
+          </div>
+          <div id="recommendations-content">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- === Footer === -->
+    <footer style="text-align: center; padding: var(--space-3xl) 0 var(--space-xl); color: var(--text-muted); font-size: 0.78rem;">
+      <p>ReelMind AI Agent</p>
+    </footer>
+
+  </div>
+
+  <!-- App Script (ES Modules) -->
+  <script type="module" src="components/app.js"></script>
+</body>
+</html>
