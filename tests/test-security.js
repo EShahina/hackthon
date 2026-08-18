@@ -2,7 +2,7 @@
  * ReelMind — Security Module Tests
  * Tests: XSS prevention, rate limiting, input validation, sanitization
  */
-import { runner, assert } from './framework.js';
+import { runner, assert, it, beforeAll, afterAll } from './framework.js';
 import { SecurityManager, security } from '../engine/security.js';
 import { SAMPLE_REELS } from '../data/reels.js';
 

@@ -213,3 +213,11 @@ export const assert = {
 
 // Global test runner instance
 export const runner = new TestRunner();
+
+// Standalone helpers so tests can call it(), xit(), etc. directly
+export const it = (name, fn) => runner.it(name, fn);
+export const xit = (name, fn) => runner.xit(name, fn);
+export const beforeAll = (fn) => runner.beforeAll(fn);
+export const afterAll = (fn) => runner.afterAll(fn);
+export const beforeEach = (fn) => runner.beforeEach(fn);
+export const afterEach = (fn) => runner.afterEach(fn);

@@ -2,7 +2,7 @@
  * ReelMind — Recommendation Engine Tests
  * Tests: hype filtering, scoring, diversity, formatting, validation
  */
-import { runner, assert } from './framework.js';
+import { runner, assert, it, beforeAll, afterAll } from './framework.js';
 import { RecommendationEngine } from '../engine/recommender.js';
 import { InterestInferenceEngine } from '../engine/inference.js';
 import { SAMPLE_REELS, RECOMMENDATION_POOL } from '../data/reels.js';

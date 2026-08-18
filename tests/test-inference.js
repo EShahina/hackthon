@@ -2,7 +2,7 @@
  * ReelMind — Inference Engine Tests
  * Tests: signal extraction, cluster scoring, compound detection, profile generation
  */
-import { runner, assert } from './framework.js';
+import { runner, assert, it, beforeAll, afterAll } from './framework.js';
 import { InterestInferenceEngine } from '../engine/inference.js';
 import { SAMPLE_REELS } from '../data/reels.js';
 import { TOPIC_HIERARCHY, SIGNAL_WEIGHTS, COMPOUND_PATTERNS } from '../data/topics.js';

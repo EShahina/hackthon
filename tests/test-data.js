@@ -2,7 +2,7 @@
  * ReelMind — Data Integrity Tests
  * Tests: data structure validation, topic taxonomy, recommendation pool
  */
-import { runner, assert } from './framework.js';
+import { runner, assert, it, beforeAll, afterAll } from './framework.js';
 import { SAMPLE_REELS, RECOMMENDATION_POOL } from '../data/reels.js';
 import { TOPIC_HIERARCHY, TOPIC_TO_CLUSTER, SIGNAL_WEIGHTS, COMPOUND_PATTERNS, HYPE_PATTERNS } from '../data/topics.js';
 

@@ -35,6 +35,7 @@
     .error { background: #1a0a0a; padding: 8px; border-radius: 4px; margin: 4px 0 8px; font-size: 0.72rem; color: #fca5a5; white-space: pre-wrap; overflow-x: auto; }
     a { color: #a78bfa; }
     .loading-msg { color: #a78bfa; font-size: 0.85rem; padding: 20px; }
+    .import-error { background: #2e0a0a; border: 1px solid #ef4444; padding: 16px; border-radius: 8px; margin-bottom: 16px; color: #fca5a5; }
   </style>
 </head>
 <body>
@@ -47,38 +48,61 @@
   </div>
 
   <div id="test-summary"></div>
-  <div id="test-output"></div>
+  <div id="test-output"><div class="loading-msg">Loading test modules...</div></div>
 
   <script type="module">
-    import { runner } from './tests/framework.js';
-    import './tests/test-data.js';
-    import './tests/test-inference.js';
-    import './tests/test-recommender.js';
-    import './tests/test-security.js';
-    import './tests/test-integration.js';
+    const output = document.getElementById('test-output');
+    const summary = document.getElementById('test-summary');
+
+    function showError(msg) {
+      output.innerHTML = `<div class="import-error"><strong>Import Error:</strong><pre class="error">${msg}</pre></div>`;
+    }
+
+    let runner;
+    try {
+      const fw = await import('./tests/framework.js');
+      runner = fw.runner;
+
+      const modules = [
+        { name: 'test-data.js',       path: './tests/test-data.js' },
+        { name: 'test-inference.js',  path: './tests/test-inference.js' },
+        { name: 'test-recommender.js',path: './tests/test-recommender.js' },
+        { name: 'test-security.js',   path: './tests/test-security.js' },
+        { name: 'test-integration.js',path: './tests/test-integration.js' },
+      ];
+
+      output.innerHTML = '';
+
+      for (const mod of modules) {
+        try {
+          await import(mod.path);
+        } catch (err) {
+          output.innerHTML += `<div class="import-error"><strong>${mod.name} failed to load:</strong><pre class="error">${err.message}\n${err.stack || ''}</pre></div>`;
+        }
+      }
+    } catch (err) {
+      showError(`Framework failed to load: ${err.message}\n${err.stack || ''}`);
+      return;
+    }
 
     async function runAllTests() {
       const btn = document.getElementById('run-btn');
       btn.disabled = true;
       btn.textContent = 'Running...';
-      document.getElementById('test-output').innerHTML = '';
-      document.getElementById('test-summary').innerHTML = '';
 
       try {
-        await runner.runAll();
+        const results = await runner.runAll();
       } catch (err) {
-        document.getElementById('test-summary').innerHTML =
-          '<div class="summary has-fail"><h2>Runner Error</h2><pre class="error">' + err.message + '</pre></div>';
+        summary.innerHTML = `<div class="summary has-fail"><h2>Runner Error</h2><pre class="error">${err.message}\n${err.stack || ''}</pre></div>`;
       }
 
       btn.disabled = false;
       btn.textContent = 'Run All Tests';
     }
 
-    // Expose for button
     window._rerunTests = runAllTests;
 
-    // Auto-run immediately (module scripts are deferred, DOM is ready)
+    // Auto-run
     runAllTests();
   </script>
 </body>

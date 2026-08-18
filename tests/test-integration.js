@@ -2,7 +2,7 @@
  * ReelMind — Integration Tests
  * Tests: full pipeline (reels → inference → recommendations → validation)
  */
-import { runner, assert } from './framework.js';
+import { runner, assert, it, beforeAll, afterAll } from './framework.js';
 import { InterestInferenceEngine } from '../engine/inference.js';
 import { RecommendationEngine } from '../engine/recommender.js';
 import { SecurityManager } from '../engine/security.js';
