@@ -1,5 +1,5 @@
 /**
- * ReelMind — Recommendation Engine Tests
+ * ReelSense — Recommendation Engine Tests
  * Tests: hype filtering, scoring, diversity, formatting, validation
  */
 import { runner, assert, it, beforeAll, afterAll } from './framework.js';

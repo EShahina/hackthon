@@ -1,5 +1,5 @@
 /**
- * ReelMind — Inference Engine Tests
+ * ReelSense — Inference Engine Tests
  * Tests: signal extraction, cluster scoring, compound detection, profile generation
  */
 import { runner, assert, it, beforeAll, afterAll } from './framework.js';

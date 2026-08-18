@@ -1,7 +1,7 @@
 {
-  "name": "reelmind",
+  "name": "reelsense",
   "version": "1.0.0",
-  "description": "ReelMind — AI-Powered Tech Reels Recommendation Agent",
+  "description": "ReelSense — AI Semantic Video Recommendation Agent",
   "type": "module",
   "scripts": {
     "dev": "npx serve . -l 3000",

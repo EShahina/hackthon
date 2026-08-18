@@ -1,15 +1,11 @@
 /**
- * ReelMind — Main Application Controller
+ * ReelSense — Main Application Controller
  * 
- * Orchestrates the UI flow:
- * 1. Display sample Reels for selection (shuffled on each load)
- * 2. Handle user selection (click/keyboard accessible)
- * 3. Run interest inference on selected Reels → InterestInferenceEngine
- * 4. Generate recommendations → RecommendationEngine
- * 5. Render analysis + recommendations with animations
+ * 3-tab SPA: Feed / Insights / Dashboard
  * 
- * AUTO-ANALYZE: Triggers 500ms after selection changes (debounced)
- * TRAP SCENARIO: Quick-select buttons for the 4 "trap" Reels (R001-R004)
+ * 1. Feed: Display sample Reels for selection
+ * 2. Insights: Interest analysis, recommendations, student profile
+ * 3. Dashboard: Analytics stats, accessibility settings, keyboard shortcuts
  */
 
 import { SAMPLE_REELS } from '../data/reels.js';
@@ -20,7 +16,7 @@ import { security } from '../engine/security.js';
 import { InteractionTracker } from '../engine/tracker.js';
 import { StudentProfileBuilder } from '../engine/profile.js';
 
-class ReelMindApp {
+class ReelSenseApp {
   constructor() {
     this.selectedReels = new Set();
     this.inferenceEngine = new InterestInferenceEngine();
@@ -33,14 +29,11 @@ class ReelMindApp {
     this.autoAnalyzeTimer = null;
     this.analysisCache = new Map();
     this.watchTimers = new Map();
-    this.highContrast = false;
+    this.activeTab = 'feed';
 
     this.init();
   }
 
-  /**
-   * Initialize app: render feed, bind events, update UI
-   */
   init() {
     this.renderReelsFeed();
     this.setupEventListeners();
@@ -48,17 +41,35 @@ class ReelMindApp {
     this.setupAccessibility();
     this.setupKeyboardShortcuts();
     this.setupWatchTracking();
+    this.setupTabNavigation();
   }
 
-  /**
-   * Render the Reels feed panel with shuffled order for variety
-   * Each card is clickable and keyboard accessible (Enter/Space)
-   */
+  // === Tab Navigation ===
+  setupTabNavigation() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+    });
+  }
+
+  switchTab(tabName) {
+    this.activeTab = tabName;
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const isActive = btn.dataset.tab === tabName;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive);
+    });
+
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === `panel-${tabName}`);
+    });
+  }
+
+  // === Reels Feed ===
   renderReelsFeed() {
     const grid = document.getElementById('reels-grid');
     if (!grid) return;
 
-    // Shuffle reels on each load for variety
     const shuffledReels = [...SAMPLE_REELS].sort(() => Math.random() - 0.5);
 
     grid.innerHTML = shuffledReels.map(reel => {
@@ -68,55 +79,49 @@ class ReelMindApp {
 
       return `
       <div class="reel-card" data-reel-id="${reel.id}" data-youtube-url="${isYouTube ? reel.videoUrl : ''}" tabindex="0" role="button" aria-pressed="false" aria-label="Select ${reel.title}">
-        <div class="reel-card-inner">
-          <div class="reel-thumbnail">
-            ${isYouTube
-              ? `<img class="reel-yt-thumb" src="${thumbnailUrl}" alt="${reel.title}" onclick="window.open('${reel.videoUrl}', '_blank'); setTimeout(() => this.closest('.reel-card').click(), 100);" /><div class="reel-yt-play" onclick="window.open('${reel.videoUrl}', '_blank'); setTimeout(() => this.closest('.reel-card').click(), 100);"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="22" fill="rgba(0,0,0,0.6)"/><polygon points="18,14 36,24 18,34" fill="white"/></svg></div>`
-              : reel.videoUrl
-                ? `<video class="reel-video" src="${reel.videoUrl}" muted loop preload="metadata" onclick="event.stopPropagation(); this.closest('.reel-card').click();"></video>`
-                : `<span class="reel-emoji">${reel.thumbnail}</span>`
-            }
-            <span class="reel-duration">${reel.duration}</span>
-            <div class="reel-check">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor"/>
-              </svg>
-            </div>
+        <div class="reel-thumbnail">
+          ${isYouTube
+            ? `<img class="reel-yt-thumb" src="${thumbnailUrl}" alt="${reel.title}" onclick="window.open('${reel.videoUrl}', '_blank'); setTimeout(() => this.closest('.reel-card').click(), 100);" /><div class="reel-yt-play" onclick="window.open('${reel.videoUrl}', '_blank'); setTimeout(() => this.closest('.reel-card').click(), 100);"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="22" fill="rgba(0,0,0,0.6)"/><polygon points="18,14 36,24 18,34" fill="white"/></svg></div>`
+            : reel.videoUrl
+              ? `<video class="reel-video" src="${reel.videoUrl}" muted loop preload="metadata" onclick="event.stopPropagation(); this.closest('.reel-card').click();"></video>`
+              : `<span class="reel-emoji">${reel.thumbnail}</span>`
+          }
+          <span class="reel-duration">${reel.duration}</span>
+          <div class="reel-check">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor"/>
+            </svg>
           </div>
-          <div class="reel-info">
-            <h3 class="reel-title">${reel.title}</h3>
-            <p class="reel-creator">${reel.creator}</p>
-            <p class="reel-description">${reel.description}</p>
-            <div class="reel-meta">
-              <span class="reel-category-badge">${reel.category}</span>
-              <span class="reel-stats">${reel.likes} likes</span>
-            </div>
-            <div class="reel-actions" onclick="event.stopPropagation()">
-              <button class="reel-action-btn like-btn" data-reel-id="${reel.id}" title="Like" aria-label="Like this reel">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </button>
-              <button class="reel-action-btn save-btn" data-reel-id="${reel.id}" title="Save" aria-label="Save this reel">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              </button>
-              <button class="reel-action-btn share-btn" data-reel-id="${reel.id}" title="Share" aria-label="Share this reel">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              </button>
-              <button class="reel-action-btn skip-btn" data-reel-id="${reel.id}" title="Skip" aria-label="Skip this reel">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </button>
-            </div>
+        </div>
+        <div class="reel-info">
+          <h3 class="reel-title">${reel.title}</h3>
+          <p class="reel-creator">${reel.creator}</p>
+          <p class="reel-description">${reel.description}</p>
+          <div class="reel-meta">
+            <span class="reel-category-badge">${reel.category}</span>
+            <span class="reel-stats">${reel.likes} likes</span>
+          </div>
+          <div class="reel-actions" onclick="event.stopPropagation()">
+            <button class="reel-action-btn like-btn" data-reel-id="${reel.id}" title="Like" aria-label="Like this reel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+            <button class="reel-action-btn save-btn" data-reel-id="${reel.id}" title="Save" aria-label="Save this reel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
+            <button class="reel-action-btn share-btn" data-reel-id="${reel.id}" title="Share" aria-label="Share this reel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </button>
+            <button class="reel-action-btn skip-btn" data-reel-id="${reel.id}" title="Skip" aria-label="Skip this reel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
           </div>
         </div>
       </div>`;
     }).join('');
   }
 
-  /**
-   * Bind all UI event listeners
-   * Handles: reel selection (click/keyboard), analyze/reset buttons, quick-select buttons
-   */
+  // === Event Listeners ===
   setupEventListeners() {
-    // Reel card selection (click + keyboard accessible with Enter/Space)
     const grid = document.getElementById('reels-grid');
     if (grid) {
       grid.addEventListener('click', (e) => {
@@ -147,33 +152,7 @@ class ReelMindApp {
           if (video) { video.pause(); video.currentTime = 0; }
         }
       }, true);
-    }
 
-    // Analyze button - triggers full inference + recommendation pipeline
-    const analyzeBtn = document.getElementById('analyze-btn');
-    if (analyzeBtn) {
-      analyzeBtn.addEventListener('click', () => this.runAnalysis());
-    }
-
-    // Reset button - clears selections and results
-    const resetBtn = document.getElementById('reset-btn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => this.resetAll());
-    }
-
-    // Quick select: the 4 "trap" Reels (Java meme + SWE lifestyle + interview joke + laptop review)
-    const trapBtn = document.getElementById('trap-btn');
-    if (trapBtn) {
-      trapBtn.addEventListener('click', () => this.selectTrapReels());
-    }
-
-    // Quick select: all 8 Reels
-    const selectAllBtn = document.getElementById('select-all-btn');
-    if (selectAllBtn) {
-      selectAllBtn.addEventListener('click', () => this.selectAllReels());
-    }
-
-    // Interaction buttons (like, save, share, skip)
       grid.addEventListener('click', (e) => {
         const btn = e.target.closest('.reel-action-btn');
         if (!btn) return;
@@ -196,15 +175,31 @@ class ReelMindApp {
           if (card) card.classList.add('skipped');
         }
       }, true);
+    }
+
+    const analyzeBtn = document.getElementById('analyze-btn');
+    if (analyzeBtn) {
+      analyzeBtn.addEventListener('click', () => this.runAnalysis());
+    }
+
+    const resetBtn = document.getElementById('reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => this.resetAll());
+    }
+
+    const trapBtn = document.getElementById('trap-btn');
+    if (trapBtn) {
+      trapBtn.addEventListener('click', () => this.selectTrapReels());
+    }
+
+    const selectAllBtn = document.getElementById('select-all-btn');
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', () => this.selectAllReels());
+    }
   }
 
-  /**
-   * Toggle selection state of a Reel card
-   * Updates Set, DOM classes, and ARIA attributes for accessibility
-   */
   toggleReelSelection(card) {
     const reelId = card.dataset.reelId;
-
     if (this.selectedReels.has(reelId)) {
       this.selectedReels.delete(reelId);
       card.classList.remove('selected');
@@ -214,15 +209,9 @@ class ReelMindApp {
       card.classList.add('selected');
       card.setAttribute('aria-pressed', 'true');
     }
-
     this.updateSelectionCount();
   }
 
-  /**
-   * Quick-select the 4 "trap" Reels (R001-R004):
-   * Java meme + SWE lifestyle + Interview joke + Laptop comparison
-   * This combination should trigger the "Software Engineering Career Path" compound interest
-   */
   selectTrapReels() {
     this.clearSelections();
     const trapIds = ['R001', 'R002', 'R003', 'R004'];
@@ -237,9 +226,6 @@ class ReelMindApp {
     this.updateSelectionCount();
   }
 
-  /**
-   * Quick-select all 8 Reels in the feed
-   */
   selectAllReels() {
     this.clearSelections();
     SAMPLE_REELS.forEach(reel => {
@@ -253,9 +239,6 @@ class ReelMindApp {
     this.updateSelectionCount();
   }
 
-  /**
-   * Clear all selections from UI and internal state
-   */
   clearSelections() {
     this.selectedReels.clear();
     document.querySelectorAll('.reel-card.selected').forEach(card => {
@@ -265,64 +248,67 @@ class ReelMindApp {
     this.updateSelectionCount();
   }
 
-  /**
-   * Update selection counter badge and analyze button state/text
-   * Also triggers debounced auto-analysis (500ms after last change)
-   */
   updateSelectionCount() {
     const count = this.selectedReels.size;
     const countEl = document.getElementById('selection-count');
     const analyzeBtn = document.getElementById('analyze-btn');
 
-    if (countEl) {
-      countEl.textContent = count;
-    }
+    if (countEl) countEl.textContent = count;
     if (analyzeBtn) {
       analyzeBtn.disabled = count === 0;
       analyzeBtn.querySelector('.btn-text').textContent =
         count === 0 ? 'Select Reels to Analyze' : `Analyze ${count} Reel${count !== 1 ? 's' : ''}`;
     }
 
-    // Auto-trigger analysis with debounce
     this._scheduleAutoAnalyze();
   }
 
-  /**
-   * Debounced auto-analysis: waits 500ms after selection changes
-   * If selection becomes empty, hides results and clears state
-   */
   _scheduleAutoAnalyze() {
     clearTimeout(this.autoAnalyzeTimer);
     if (this.selectedReels.size === 0) {
-      const resultsSection = document.getElementById('results-section');
-      if (resultsSection) resultsSection.classList.remove('visible');
-      const extrasSection = document.getElementById('extras-section');
-      if (extrasSection) extrasSection.classList.remove('visible');
-      document.getElementById('analysis-content').innerHTML = '';
-      document.getElementById('recommendations-content').innerHTML = '';
-      this.analysisResult = null;
-      this.recommendations = [];
-      this.studentProfile = null;
+      this.clearResults();
       return;
     }
     this.autoAnalyzeTimer = setTimeout(() => this.runAnalysis(), 500);
   }
 
-  /**
-   * Run the full AI analysis pipeline:
-   * 1. Filter selected Reel objects from SAMPLE_REELS
-   * 2. InterestInferenceEngine.analyze() → interest profile with clusters, compound patterns
-   * 3. Render analysis results (summary, clusters, per-Reel breakdown)
-   * 4. RecommendationEngine.recommend() → 5 structured recommendations
-   * 5. Render recommendation cards with visual comparison
-   */
+  clearResults() {
+    const resultsSection = document.getElementById('results-section');
+    if (resultsSection) resultsSection.classList.remove('visible');
+    const extrasSection = document.getElementById('extras-section');
+    if (extrasSection) extrasSection.classList.remove('visible');
+    document.getElementById('analysis-content').innerHTML = `
+      <div class="empty-state card">
+        <span class="empty-icon">🧠</span>
+        <p>Select Reels in the Feed tab and analyze to see AI-powered interest inference.</p>
+      </div>`;
+    document.getElementById('recommendations-content').innerHTML = `
+      <div class="empty-state card">
+        <span class="empty-icon">🎬</span>
+        <p>Recommendations will appear here after analysis.</p>
+      </div>`;
+    document.getElementById('profile-content').innerHTML = `
+      <div class="empty-state card">
+        <span class="empty-icon">🎓</span>
+        <p>Student profile will be generated after analysis.</p>
+      </div>`;
+    document.getElementById('analytics-content').innerHTML = `
+      <div class="empty-state card">
+        <span class="empty-icon">📊</span>
+        <p>Analytics will populate as you interact with Reels.</p>
+      </div>`;
+    this.analysisResult = null;
+    this.recommendations = [];
+    this.studentProfile = null;
+  }
+
+  // === Analysis Pipeline ===
   async runAnalysis() {
     if (this.selectedReels.size === 0 || this.isAnalyzing) return;
 
-    // Security: Rate limit check
     const rateCheck = security.checkAnalysisRateLimit();
     if (!rateCheck.allowed) {
-      console.warn('[Security] Rate limit exceeded. Please wait before analyzing again.');
+      console.warn('[Security] Rate limit exceeded.');
       security.logEvent('rate_limit_exceeded', { remaining: rateCheck.remaining });
       return;
     }
@@ -332,19 +318,17 @@ class ReelMindApp {
     analyzeBtn.classList.add('loading');
     analyzeBtn.querySelector('.btn-text').textContent = 'Analyzing...';
 
-    // Show results panels
     const resultsSection = document.getElementById('results-section');
+    const extrasSection = document.getElementById('extras-section');
     resultsSection.classList.add('visible');
+    extrasSection.classList.add('visible');
 
-    // Show loading states
     this.showLoadingState('analysis-content', 'Inferring interests...');
     this.showLoadingState('recommendations-content', 'Generating recommendations...');
 
     try {
-      // Get selected Reel objects from the full dataset
       const selectedReelObjects = SAMPLE_REELS.filter(r => this.selectedReels.has(r.id));
 
-      // Security: Validate input reels
       for (const reel of selectedReelObjects) {
         const validation = security.validateReel(reel);
         if (!validation.valid) {
@@ -353,7 +337,6 @@ class ReelMindApp {
         }
       }
 
-      // Efficiency: Check memoization cache
       const cacheKey = [...this.selectedReels].sort().join(',');
       if (this.analysisCache.has(cacheKey)) {
         console.log('[Cache] Using cached analysis result');
@@ -361,21 +344,17 @@ class ReelMindApp {
         this.analysisResult = cached.profile;
         this.recommendations = cached.recs;
       } else {
-        // Phase 1: Run interest inference
         this.analysisResult = this.inferenceEngine.analyze(selectedReelObjects);
 
-        // Security: Validate profile output
         const profileValidation = security.validateProfile(this.analysisResult);
         if (!profileValidation.valid) {
           security.logEvent('invalid_profile_output', { errors: profileValidation.errors });
         }
 
-        // Phase 2: Run recommendation engine
         this.recommendations = this.recommender.recommend(
           this.analysisResult, selectedReelObjects, 5
         );
 
-        // Security: Validate recommendations
         for (const rec of this.recommendations) {
           const recValidation = security.validateRecommendation(rec);
           if (!recValidation.valid) {
@@ -383,7 +362,6 @@ class ReelMindApp {
           }
         }
 
-        // Cache the result (max 50 entries)
         if (this.analysisCache.size > 50) {
           const firstKey = this.analysisCache.keys().next().value;
           this.analysisCache.delete(firstKey);
@@ -392,19 +370,19 @@ class ReelMindApp {
       }
 
       this.renderAnalysis();
-      console.log('[App] Recommendations generated:', this.recommendations.length);
       this.renderRecommendations();
 
-      // Build student profile from inference + tracker data
       const trackerStats = this.tracker.getStats();
       this.studentProfile = StudentProfileBuilder.build(
         this.analysisResult, trackerStats, this.recommendations
       );
       this.renderStudentProfile();
       this.renderAnalytics();
+      this.renderDashboard();
 
-      const extrasSection = document.getElementById('extras-section');
-      if (extrasSection) extrasSection.classList.add('visible');
+      console.log('[App] Analysis complete. Recommendations:', this.recommendations.length);
+
+      this.switchTab('insights');
     } catch (error) {
       console.error('Analysis failed:', error);
       security.logEvent('analysis_error', { error: error.message });
@@ -415,25 +393,17 @@ class ReelMindApp {
       analyzeBtn.querySelector('.btn-text').textContent = `Analyze ${this.selectedReels.size} Reels`;
       this.isAnalyzing = false;
     }
-
-    // Smooth scroll to results
-    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  /**
-   * Render analysis results into the analysis panel
-   * Sections: Summary card → Compound alert (if detected) → Cluster bars → Per-Reel breakdown
-   * Each section uses stagger animation delays for polished feel
-   */
+  // === Render Analysis ===
   renderAnalysis() {
     const container = document.getElementById('analysis-content');
     if (!container || !this.analysisResult) return;
 
     const profile = this.analysisResult;
 
-    // Summary card with overall confidence badge
     let html = `
-      <div class="analysis-summary glass-card animate-in">
+      <div class="analysis-summary card animate-in">
         <div class="summary-icon">🧠</div>
         <p class="summary-text">${profile.summary}</p>
         <div class="confidence-badge confidence-${profile.overallConfidence.toLowerCase()}">
@@ -442,10 +412,9 @@ class ReelMindApp {
       </div>
     `;
 
-    // Compound interest alert (trap detection) - shows when compound pattern matched
     if (profile.compoundInterest) {
       html += `
-        <div class="compound-alert glass-card animate-in" style="animation-delay: 0.1s">
+        <div class="compound-alert card animate-in" style="animation-delay: 0.1s">
           <div class="alert-header">
             <span class="alert-icon">🎯</span>
             <span class="alert-title">Compound Interest Detected</span>
@@ -483,13 +452,12 @@ class ReelMindApp {
       `;
     }
 
-    // Interest clusters visualization - ranked by score with breadth bonus indicator
     html += `
       <div class="clusters-section animate-in" style="animation-delay: 0.2s">
         <h3 class="section-subtitle">Interest Clusters</h3>
         <div class="clusters-grid">
           ${profile.allClusters.map((cluster, i) => `
-            <div class="cluster-card glass-card" style="animation-delay: ${0.3 + i * 0.08}s">
+            <div class="cluster-card card" style="animation-delay: ${0.3 + i * 0.08}s">
               <div class="cluster-header">
                 <span class="cluster-rank">#${i + 1}</span>
                 <span class="cluster-name">${cluster.label}</span>
@@ -508,12 +476,11 @@ class ReelMindApp {
       </div>
     `;
 
-    // Per-Reel analysis - shows what interest each Reel contributed and why
     html += `
       <div class="reel-analysis-section animate-in" style="animation-delay: 0.4s">
         <h3 class="section-subtitle">Per-Reel Analysis</h3>
         ${profile.reelAnalyses.map((analysis, i) => `
-          <div class="reel-analysis-card glass-card" style="animation-delay: ${0.5 + i * 0.06}s">
+          <div class="reel-analysis-card card" style="animation-delay: ${0.5 + i * 0.06}s">
             <div class="analysis-reel-header">
               <span class="analysis-emoji">${analysis.reel.thumbnail}</span>
               <div class="analysis-reel-info">
@@ -542,18 +509,14 @@ class ReelMindApp {
     container.innerHTML = html;
   }
 
-  /**
-   * Render recommendation cards into the recommendations panel
-   * Each card shows: visual comparison (watched → recommended), structured output block, description
-   * Empty state shown if no recommendations generated
-   */
+  // === Render Recommendations ===
   renderRecommendations() {
     const container = document.getElementById('recommendations-content');
     if (!container) return;
 
     if (this.recommendations.length === 0) {
       container.innerHTML = `
-        <div class="empty-state glass-card">
+        <div class="empty-state card">
           <span class="empty-icon">🤔</span>
           <p>No tech recommendations could be generated. Try selecting more Reels with tech-related content.</p>
         </div>
@@ -573,7 +536,7 @@ class ReelMindApp {
       const recReelObj = rec.recommendedReelObj;
 
       return `
-      <div class="recommendation-card glass-card animate-in" style="animation-delay: ${0.1 + i * 0.12}s">
+      <div class="recommendation-card card animate-in" style="animation-delay: ${0.1 + i * 0.12}s">
         <div class="rec-header">
           <div class="rec-number">${rec.index}</div>
           <div class="rec-category-badge" style="background: ${rec.categoryMeta.gradient}">
@@ -592,7 +555,7 @@ class ReelMindApp {
           <div class="rec-visual-arrow" aria-hidden="true">
             <svg width="40" height="24" viewBox="0 0 40 24" fill="none">
               <path d="M2 12h32M30 6l6 6-6 6" stroke="url(#arrowGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <defs><linearGradient id="arrowGrad" x1="2" y1="12" x2="38" y2="12"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+              <defs><linearGradient id="arrowGrad" x1="2" y1="12" x2="38" y2="12"><stop stop-color="#4f46e5"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
             </svg>
           </div>
           <div class="rec-visual-reel recommended">
@@ -652,17 +615,12 @@ class ReelMindApp {
       </div>
     `}).join('');
 
-
     container.innerHTML = html;
   }
 
-  /**
-   * Show loading skeleton with spinner and message
-   */
   showLoadingState(containerId, message) {
     const container = document.getElementById(containerId);
     if (!container) return;
-
     container.innerHTML = `
       <div class="loading-state">
         <div class="loading-spinner">
@@ -675,9 +633,6 @@ class ReelMindApp {
     `;
   }
 
-  /**
-   * Full reset: clear selections, results, hide panels, scroll to top
-   */
   resetAll() {
     this.clearSelections();
     this.analysisResult = null;
@@ -685,44 +640,37 @@ class ReelMindApp {
     this.studentProfile = null;
 
     const resultsSection = document.getElementById('results-section');
-    if (resultsSection) {
-      resultsSection.classList.remove('visible');
-    }
+    if (resultsSection) resultsSection.classList.remove('visible');
+    const extrasSection = document.getElementById('extras-section');
+    if (extrasSection) extrasSection.classList.remove('visible');
 
-    document.getElementById('analysis-content').innerHTML = '';
-    document.getElementById('recommendations-content').innerHTML = '';
-    document.getElementById('profile-content').innerHTML = '';
-    document.getElementById('analytics-content').innerHTML = '';
+    this.clearResults();
 
+    document.getElementById('dashboard-stats').innerHTML = `
+      <div class="empty-state card" style="margin-bottom: var(--space-md);">
+        <span class="empty-icon">📊</span>
+        <p>Dashboard data will populate after you analyze Reels in the Feed tab.</p>
+      </div>`;
+    document.getElementById('dashboard-distribution').innerHTML = '';
+
+    this.switchTab('feed');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /**
-   * Utility: get gradient color for cluster rank (cycles through 8 colors)
-   */
   getClusterColor(index) {
     const colors = [
-      'linear-gradient(90deg, #7c3aed, #a78bfa)',
+      'linear-gradient(90deg, #4f46e5, #818cf8)',
       'linear-gradient(90deg, #0891b2, #22d3ee)',
       'linear-gradient(90deg, #059669, #34d399)',
       'linear-gradient(90deg, #d97706, #fbbf24)',
-      'linear-gradient(90deg, #dc2626, #f87171)',
+      'linear-gradient(90deg, #e11d48, #fb7185)',
       'linear-gradient(90deg, #7c3aed, #c084fc)',
       'linear-gradient(90deg, #0284c7, #38bdf8)'
     ];
     return colors[index % colors.length];
   }
 
-  /**
-   * Utility: promise-based delay for animations
-   */
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Setup watch time tracking on video elements
-   */
+  // === Watch Tracking ===
   setupWatchTracking() {
     document.addEventListener('mouseenter', (e) => {
       const card = e.target.closest('.reel-card');
@@ -733,7 +681,6 @@ class ReelMindApp {
       if (video) {
         const startTime = Date.now();
         this.watchTimers.set(reelId, { start: startTime, video });
-        video.addEventListener('timeupdate', this._onTimeUpdate);
       }
     }, true);
 
@@ -754,34 +701,48 @@ class ReelMindApp {
     }, true);
   }
 
-  _onTimeUpdate(e) {
-    const video = e.target;
-    const card = video.closest('.reel-card');
-    if (!card) return;
-    const reelId = card.dataset.reelId;
-    if (video.duration) {
-      const pct = (video.currentTime / video.duration) * 100;
-      if (window.app) window.app.tracker.updateWatchPercent(reelId, pct);
-    }
-  }
-
-  /**
-   * Setup accessibility features
-   */
+  // === Accessibility ===
   setupAccessibility() {
     const toggle = document.getElementById('contrast-toggle');
     if (toggle) {
-      toggle.addEventListener('click', () => {
-        this.highContrast = !this.highContrast;
-        document.body.classList.toggle('high-contrast', this.highContrast);
-        toggle.setAttribute('aria-pressed', this.highContrast);
+      toggle.addEventListener('click', () => this.toggleHighContrast());
+    }
+
+    const a11yContrast = document.getElementById('a11y-contrast');
+    if (a11yContrast) {
+      a11yContrast.addEventListener('click', () => {
+        a11yContrast.classList.toggle('active');
+        this.toggleHighContrast();
+      });
+    }
+
+    const a11yLargeText = document.getElementById('a11y-large-text');
+    if (a11yLargeText) {
+      a11yLargeText.addEventListener('click', () => {
+        a11yLargeText.classList.toggle('active');
+        document.body.classList.toggle('large-text', a11yLargeText.classList.contains('active'));
+      });
+    }
+
+    const a11yReduceMotion = document.getElementById('a11y-reduce-motion');
+    if (a11yReduceMotion) {
+      a11yReduceMotion.addEventListener('click', () => {
+        a11yReduceMotion.classList.toggle('active');
+        document.body.classList.toggle('reduce-animation', a11yReduceMotion.classList.contains('active'));
       });
     }
   }
 
-  /**
-   * Setup keyboard shortcuts
-   */
+  toggleHighContrast() {
+    document.body.classList.toggle('high-contrast');
+    const toggle = document.getElementById('contrast-toggle');
+    if (toggle) {
+      const isOn = document.body.classList.contains('high-contrast');
+      toggle.setAttribute('aria-pressed', isOn);
+    }
+  }
+
+  // === Keyboard Shortcuts ===
   setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -790,93 +751,135 @@ class ReelMindApp {
         case 'a': this.selectAllReels(); break;
         case 't': this.selectTrapReels(); break;
         case 'r': this.resetAll(); break;
+        case '1': this.switchTab('feed'); break;
+        case '2': this.switchTab('insights'); break;
+        case '3': this.switchTab('dashboard'); break;
         case 'c':
-          if (!e.ctrlKey && !e.metaKey) {
-            const toggle = document.getElementById('contrast-toggle');
-            if (toggle) toggle.click();
-          }
+          if (!e.ctrlKey && !e.metaKey) this.toggleHighContrast();
           break;
       }
     });
   }
 
-  /**
-   * Render analytics dashboard
-   */
-  renderAnalytics() {
-    const container = document.getElementById('analytics-content');
+  // === Dashboard ===
+  renderDashboard() {
+    this.renderDashboardStats();
+    this.renderDashboardDistribution();
+  }
+
+  renderDashboardStats() {
+    const container = document.getElementById('dashboard-stats');
     if (!container) return;
 
     const stats = this.tracker.getStats();
-    const dist = this.tracker.getCategoryDistribution(SAMPLE_REELS);
 
     container.innerHTML = `
       <div class="analytics-grid animate-in">
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">📊</div>
           <div class="analytics-value">${stats.watched}</div>
           <div class="analytics-label">Reels Tracked</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">⏱️</div>
           <div class="analytics-value">${stats.totalWatchTimeSec}s</div>
-          <div class="analytics-label">Watch Time</div>
+          <div class="analytics-label">Avg Watch Time</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">🎯</div>
           <div class="analytics-value">${stats.engagementScore}%</div>
-          <div class="analytics-label">Engagement</div>
+          <div class="analytics-label">Engagement Score</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">📈</div>
           <div class="analytics-value">${stats.semanticDepth}%</div>
           <div class="analytics-label">Semantic Depth</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">🔄</div>
           <div class="analytics-value">${stats.retentionRate}%</div>
-          <div class="analytics-label">Retention</div>
+          <div class="analytics-label">Retention Rate</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">❤️</div>
           <div class="analytics-value">${stats.likes}</div>
           <div class="analytics-label">Likes</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">💾</div>
           <div class="analytics-value">${stats.saves}</div>
           <div class="analytics-label">Saves</div>
         </div>
-        <div class="analytics-card glass-card">
+        <div class="analytics-card card">
           <div class="analytics-icon">⏭️</div>
           <div class="analytics-value">${stats.skips}</div>
           <div class="analytics-label">Skips</div>
         </div>
       </div>
-      ${Object.keys(dist).length > 0 ? `
-        <div class="analytics-section glass-card animate-in" style="animation-delay: 0.3s">
-          <h3 class="section-subtitle">Interest Distribution</h3>
-          <div class="distribution-bars">
-            ${Object.entries(dist).sort((a, b) => b[1] - a[1]).map(([cat, count]) => {
-              const maxCount = Math.max(...Object.values(dist));
-              const pct = Math.round((count / maxCount) * 100);
-              return `
-                <div class="dist-row">
-                  <span class="dist-label">${cat}</span>
-                  <div class="dist-bar"><div class="dist-fill" style="width: ${pct}%"></div></div>
-                  <span class="dist-count">${count}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      ` : ''}
     `;
   }
 
-  /**
-   * Render student profile panel
-   */
+  renderDashboardDistribution() {
+    const container = document.getElementById('dashboard-distribution');
+    if (!container) return;
+
+    const dist = this.tracker.getCategoryDistribution(SAMPLE_REELS);
+    if (Object.keys(dist).length === 0) return;
+
+    container.innerHTML = `
+      <div class="card animate-in" style="animation-delay: 0.2s; margin-bottom: var(--space-md);">
+        <h3 class="section-subtitle">Interest Distribution</h3>
+        <div class="distribution-bars">
+          ${Object.entries(dist).sort((a, b) => b[1] - a[1]).map(([cat, count]) => {
+            const maxCount = Math.max(...Object.values(dist));
+            const pct = Math.round((count / maxCount) * 100);
+            return `
+              <div class="dist-row">
+                <span class="dist-label">${cat}</span>
+                <div class="dist-bar"><div class="dist-fill" style="width: ${pct}%"></div></div>
+                <span class="dist-count">${count}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // === Analytics (Insights tab) ===
+  renderAnalytics() {
+    const container = document.getElementById('analytics-content');
+    if (!container) return;
+
+    const stats = this.tracker.getStats();
+
+    container.innerHTML = `
+      <div class="analytics-grid animate-in">
+        <div class="analytics-card card">
+          <div class="analytics-icon">📊</div>
+          <div class="analytics-value">${stats.watched}</div>
+          <div class="analytics-label">Reels Tracked</div>
+        </div>
+        <div class="analytics-card card">
+          <div class="analytics-icon">⏱️</div>
+          <div class="analytics-value">${stats.totalWatchTimeSec}s</div>
+          <div class="analytics-label">Watch Time</div>
+        </div>
+        <div class="analytics-card card">
+          <div class="analytics-icon">🎯</div>
+          <div class="analytics-value">${stats.engagementScore}%</div>
+          <div class="analytics-label">Engagement</div>
+        </div>
+        <div class="analytics-card card">
+          <div class="analytics-icon">📈</div>
+          <div class="analytics-value">${stats.semanticDepth}%</div>
+          <div class="analytics-label">Semantic Depth</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // === Student Profile (Insights tab) ===
   renderStudentProfile() {
     const container = document.getElementById('profile-content');
     if (!container || !this.studentProfile) return;
@@ -884,11 +887,11 @@ class ReelMindApp {
     const p = this.studentProfile;
 
     container.innerHTML = `
-      <div class="profile-summary glass-card animate-in">
+      <div class="profile-summary card animate-in">
         <div class="profile-header">
           <div class="profile-icon">🎓</div>
           <div>
-            <h3>Student Profile</h3>
+            <h3 style="font-size: 0.9375rem; font-weight: 600;">Student Profile</h3>
             <p class="profile-trajectory">${p.trajectory}</p>
           </div>
         </div>
@@ -898,19 +901,19 @@ class ReelMindApp {
         </div>
       </div>
 
-      <div class="profile-text glass-card animate-in" style="animation-delay: 0.1s">
+      <div class="profile-text card animate-in" style="animation-delay: 0.1s">
         <p>${p.summary}</p>
       </div>
 
       ${p.compoundInterest ? `
-        <div class="trap-explanation glass-card animate-in" style="animation-delay: 0.15s">
+        <div class="trap-explanation card animate-in" style="animation-delay: 0.15s">
           <h4>Why this matters</h4>
-          <p>A naive algorithm would see "Java meme" and recommend only Java syntax tutorials. Instead, ReelMind detected that you also watched SWE lifestyle, interview jokes, and laptop comparisons — revealing a broader <strong>${p.compoundInterest.label}</strong> interest.</p>
+          <p>A naive algorithm would see "Java meme" and recommend only Java syntax tutorials. Instead, ReelSense detected that you also watched SWE lifestyle, interview jokes, and laptop comparisons — revealing a broader <strong>${p.compoundInterest.label}</strong> interest.</p>
           <p class="explanation-detail">${p.compoundInterest.description}</p>
         </div>
       ` : ''}
 
-      <div class="profile-readiness glass-card animate-in" style="animation-delay: 0.2s">
+      <div class="profile-readiness card animate-in" style="animation-delay: 0.2s">
         <h3 class="section-subtitle">Category Readiness</h3>
         ${Object.entries(p.readinessScores).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([cat, score], i) => `
           <div class="readiness-row">
@@ -923,7 +926,7 @@ class ReelMindApp {
         `).join('')}
       </div>
 
-      <div class="profile-next-steps glass-card animate-in" style="animation-delay: 0.3s">
+      <div class="profile-next-steps card animate-in" style="animation-delay: 0.3s">
         <h3 class="section-subtitle">Recommended Next Steps</h3>
         ${p.nextSteps.map((step, i) => `
           <div class="next-step-item">
@@ -939,7 +942,7 @@ class ReelMindApp {
   }
 }
 
-// Initialize the app when DOM is ready
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  window.app = new ReelMindApp();
+  window.app = new ReelSenseApp();
 });

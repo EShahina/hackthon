@@ -1,5 +1,5 @@
 /**
- * ReelMind — Sample Reels Data
+ * ReelSense — Sample Reels Data
  * 
  * 8 sample Reels a student might interact with, covering:
  * entertainment, gaming, coding, AI, gadgets, career, programming memes, tech news

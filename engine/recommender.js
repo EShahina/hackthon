@@ -1,5 +1,5 @@
 /**
- * ReelMind — Recommendation Engine
+ * ReelSense — Recommendation Engine
  * 
  * Takes the interest profile from the inference engine and
  * recommends engaging tech Reels from the recommendation pool.

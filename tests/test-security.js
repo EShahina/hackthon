@@ -1,5 +1,5 @@
 /**
- * ReelMind — Security Module Tests
+ * ReelSense — Security Module Tests
  * Tests: XSS prevention, rate limiting, input validation, sanitization
  */
 import { runner, assert, it, beforeAll, afterAll } from './framework.js';

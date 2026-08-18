@@ -1,5 +1,5 @@
 /**
- * ReelMind — Security Module
+ * ReelSense — Security Module
  * 
  * Provides input sanitization, rate limiting, and XSS prevention.
  * All user-facing outputs are sanitized through this module.

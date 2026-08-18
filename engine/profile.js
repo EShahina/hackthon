@@ -1,5 +1,5 @@
 /**
- * ReelMind — Student Profile Builder
+ * ReelSense — Student Profile Builder
  * Builds comprehensive student profiles from inference + tracker data.
  * Includes trajectory, readiness scores, and next steps.
  */

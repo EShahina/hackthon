@@ -1,5 +1,5 @@
 /**
- * ReelMind — Interest Inference Engine
+ * ReelSense — Interest Inference Engine
  * 
  * Analyzes watched Reels to extract semantic interest signals,
  * builds a weighted interest profile, and detects compound interests.

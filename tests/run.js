@@ -1,4 +1,4 @@
-/* ReelMind Test Runner — loaded as a regular script, not inline */
+/* ReelSense Test Runner — loaded as a regular script, not inline */
 (async function() {
   var statusEl = document.getElementById('status');
   var outputEl = document.getElementById('test-output');

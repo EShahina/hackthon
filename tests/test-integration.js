@@ -1,5 +1,5 @@
 /**
- * ReelMind — Integration Tests
+ * ReelSense — Integration Tests
  * Tests: full pipeline (reels → inference → recommendations → validation)
  */
 import { runner, assert, it, beforeAll, afterAll } from './framework.js';

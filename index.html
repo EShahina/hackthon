@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ReelMind — AI-powered recommendation agent that analyzes student Reels interactions, infers deep interests via semantic topic hierarchy, and recommends quality tech content. No API keys required.">
+  <meta name="description" content="ReelSense — AI-powered semantic video recommendation agent that analyzes student Reels interactions, infers deep interests via weighted interest profiles, and recommends quality tech content.">
   <meta name="keywords" content="AI recommendation, interest inference, tech reels, semantic analysis, hackathon 2026, software engineering">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="theme-color" content="#4f46e5">
   <meta name="robots" content="index, follow">
   
-  <!-- Security Headers (Meta Tags for GitHub Pages) -->
+  <!-- Security Headers -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://img.youtube.com data:; connect-src 'self'; frame-src https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="DENY">
@@ -17,19 +17,19 @@
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   
   <!-- Open Graph -->
-  <meta property="og:title" content="ReelMind — AI-Powered Tech Reels Recommendation Agent">
-  <meta property="og:description" content="Analyzes student Reel interactions, infers deeper interests via semantic topic hierarchy, and recommends quality tech Reels — filtering out hype and clickbait.">
+  <meta property="og:title" content="ReelSense — AI Semantic Video Recommendation Agent">
+  <meta property="og:description" content="Analyzes student Reel interactions, infers deeper interests via weighted semantic profiles, and recommends quality tech content — filtering out hype and clickbait.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://eshahina.github.io/hackthon/">
   <meta property="og:image" content="https://img.youtube.com/vi/jXArj8RBq0Q/maxresdefault.jpg">
-  <meta property="og:site_name" content="ReelMind">
+  <meta property="og:site_name" content="ReelSense">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ReelMind — AI-Powered Tech Reels Recommendation Agent">
+  <meta name="twitter:title" content="ReelSense — AI Semantic Video Recommendation Agent">
   <meta name="twitter:description" content="AI agent that infers compound interests from Reel watching patterns and recommends quality tech content.">
   
-  <title>ReelMind — AI-Powered Tech Reels Recommendation Agent</title>
+  <title>ReelSense — AI Semantic Video Recommendation Agent</title>
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,15 +37,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
   
   <!-- Structured Data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "ReelMind",
-    "description": "AI-powered recommendation agent that analyzes student Reels interactions and recommends quality tech content.",
+    "name": "ReelSense",
+    "description": "AI-powered semantic video recommendation agent that analyzes student Reels interactions and recommends quality tech content.",
     "url": "https://eshahina.github.io/hackthon/",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Web Browser",
@@ -61,109 +61,296 @@
     
     <!-- === Header === -->
     <header class="app-header">
-      <div class="logo-container">
-        <div class="logo-icon" aria-hidden="true">🧠</div>
-        <h1 class="logo-text">ReelMind</h1>
+      <div class="header-top">
+        <div class="logo-container">
+          <div class="logo-icon" aria-hidden="true">RS</div>
+          <h1 class="logo-text">ReelSense</h1>
+        </div>
+        <span class="header-badge">AI Semantic Insights</span>
       </div>
       <p class="app-tagline">
-        AI-powered recommendation agent that analyzes your Reels interactions, 
-        <strong>infers your deeper interests</strong>, and recommends engaging 
-        tech content — turning mindless scrolling into <strong>meaningful learning</strong>.
+        Analyzes your Reels interactions to infer deeper interests via weighted semantic profiles and recommends quality tech content — filtering out hype and clickbait.
       </p>
     </header>
 
-    <!-- === Reels Feed Section === -->
-    <section class="reels-section" aria-label="Sample Reels Feed">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="icon" aria-hidden="true">📱</span>
-          Student's Reel Feed
-          <span class="selection-count" id="selection-count" aria-live="polite">0</span>
-        </h2>
-        <div class="quick-actions">
-          <button class="btn-quick trap" id="trap-btn" title="Select the 4 trap Reels (Java meme + SWE lifestyle + Interview joke + Laptop review)">
-            ⚡ Select Trap Scenario
-          </button>
-          <button class="btn-quick" id="select-all-btn" title="Select all 8 Reels">
-            ✅ Select All
-          </button>
+    <!-- === Tab Navigation === -->
+    <nav class="tab-nav" role="tablist" aria-label="Main navigation">
+      <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-feed" data-tab="feed" id="tab-feed">
+        <span class="tab-icon" aria-hidden="true">📱</span>
+        Feed
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-insights" data-tab="insights" id="tab-insights">
+        <span class="tab-icon" aria-hidden="true">🧠</span>
+        Insights
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-dashboard" data-tab="dashboard" id="tab-dashboard">
+        <span class="tab-icon" aria-hidden="true">📊</span>
+        Dashboard
+      </button>
+    </nav>
+
+    <!-- ========== FEED TAB ========== -->
+    <div class="tab-panel active" id="panel-feed" role="tabpanel" aria-labelledby="tab-feed">
+      
+      <!-- Reels Feed -->
+      <section class="reels-section" aria-label="Video Feed">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="icon" aria-hidden="true">📱</span>
+            Student's Reel Feed
+            <span class="selection-count" id="selection-count" aria-live="polite">0</span>
+          </h2>
+          <div class="quick-actions">
+            <button class="btn-quick trap" id="trap-btn" title="Select the 4 trap Reels (Java meme + SWE lifestyle + Interview joke + Laptop review)">
+              ⚡ Trap Scenario
+            </button>
+            <button class="btn-quick" id="select-all-btn" title="Select all 8 Reels">
+              ✅ Select All
+            </button>
+          </div>
+        </div>
+        
+        <p class="feed-hint">
+          Click Reels to simulate what a student has watched. Then hit <strong>Analyze</strong> to see the AI agent infer interests.
+        </p>
+        
+        <div class="reels-grid" id="reels-grid" role="group" aria-label="Selectable Reels">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Action Buttons -->
+      <div class="analyze-section">
+        <button class="btn-analyze" id="analyze-btn" disabled aria-label="Analyze selected Reels">
+          <span class="btn-icon" aria-hidden="true">🧠</span>
+          <span class="btn-text">Select Reels to Analyze</span>
+        </button>
+        <button class="btn-reset" id="reset-btn" aria-label="Reset all selections and results">
+          ↺ Reset
+        </button>
+      </div>
+
+      <!-- Keyboard Shortcuts Hint -->
+      <div class="card" style="margin-top: var(--space-md);">
+        <div class="shortcuts-list">
+          <div class="shortcut-item">
+            <span class="shortcut-key">A</span>
+            <span class="shortcut-desc">Select all</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">T</span>
+            <span class="shortcut-desc">Trap scenario</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">R</span>
+            <span class="shortcut-desc">Reset</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">1</span>
+            <span class="shortcut-desc">Feed tab</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">2</span>
+            <span class="shortcut-desc">Insights tab</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">3</span>
+            <span class="shortcut-desc">Dashboard tab</span>
+          </div>
         </div>
       </div>
-      
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: var(--space-lg);">
-        Click Reels to simulate what a student has watched. Then hit <strong>Analyze</strong> to see the AI agent infer interests.
-      </p>
-      
-      <div class="reels-grid" id="reels-grid" role="group" aria-label="Selectable Reels">
-        <!-- Populated by JavaScript -->
-      </div>
-    </section>
 
-    <!-- === Action Buttons === -->
-    <div class="analyze-section">
-      <button class="btn-analyze" id="analyze-btn" disabled aria-label="Analyze selected Reels">
-        <span class="btn-icon" aria-hidden="true">🧠</span>
-        <span class="btn-text">Select Reels to Analyze</span>
-      </button>
-      <button class="btn-reset" id="reset-btn" aria-label="Reset all selections and results">
-        ↺ Reset
-      </button>
     </div>
 
-    <!-- === Results Section === -->
-    <section class="results-section" id="results-section" aria-label="Analysis Results">
-      <div class="results-grid">
-        
-        <!-- Analysis Panel -->
-        <div class="results-panel" id="analysis-panel">
-          <div class="panel-header">
-            <span class="panel-icon" aria-hidden="true">🔍</span>
-            <h2 class="panel-title">Interest Analysis</h2>
+    <!-- ========== INSIGHTS TAB ========== -->
+    <div class="tab-panel" id="panel-insights" role="tabpanel" aria-labelledby="tab-insights">
+      
+      <!-- Analysis Panel -->
+      <section class="results-section visible" id="results-section" aria-label="Analysis Results">
+        <div class="results-grid">
+          
+          <div class="results-panel" id="analysis-panel">
+            <div class="panel-header">
+              <span class="panel-icon" aria-hidden="true">🔍</span>
+              <h2 class="panel-title">Interest Analysis</h2>
+            </div>
+            <div id="analysis-content">
+              <div class="empty-state card">
+                <span class="empty-icon">🧠</span>
+                <p>Select Reels in the Feed tab and analyze to see AI-powered interest inference.</p>
+              </div>
+            </div>
           </div>
-          <div id="analysis-content">
-            <!-- Populated by JavaScript -->
+
+          <div class="results-panel" id="recommendations-panel">
+            <div class="panel-header">
+              <span class="panel-icon" aria-hidden="true">🎬</span>
+              <h2 class="panel-title">Recommendations</h2>
+            </div>
+            <div id="recommendations-content">
+              <div class="empty-state card">
+                <span class="empty-icon">🎬</span>
+                <p>Recommendations will appear here after analysis.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Naive vs Semantic Comparison -->
+      <section class="comparison-panel" aria-label="Algorithm Comparison">
+        <h3 class="section-subtitle" style="margin-top: var(--space-xl);">
+          <span class="icon" aria-hidden="true">⚖️</span>
+          Naive vs Semantic Analysis
+        </h3>
+        <div class="comparison-grid">
+          <div class="card comparison-card naive">
+            <div class="comparison-title">❌ Naive Keyword Matching</div>
+            <div class="comparison-output">
+              Sees "Java meme" → recommends Java syntax tutorials.<br>
+              Sees "SWE lifestyle" → recommends generic "tech jobs" content.<br>
+              Sees "linked list joke" → recommends DSA basics.<br>
+              <strong>Result:</strong> Fragmented, surface-level recommendations.
+            </div>
+          </div>
+          <div class="card comparison-card semantic">
+            <div class="comparison-title">✅ ReelSense Semantic Analysis</div>
+            <div class="comparison-output">
+              Detects compound pattern across 4 trap Reels → infers "Software Engineering Career Path".<br>
+              Weighted interest profile identifies career aspiration + interview prep + tooling interest.<br>
+              <strong>Result:</strong> Cohesive, career-aligned recommendations.
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Recommendations Panel -->
-        <div class="results-panel" id="recommendations-panel">
-          <div class="panel-header">
-            <span class="panel-icon" aria-hidden="true">🎬</span>
-            <h2 class="panel-title">Recommendations</h2>
+      <!-- Student Profile -->
+      <section class="results-section visible" id="extras-section" aria-label="Student Profile" style="margin-top: var(--space-xl);">
+        <div class="results-grid">
+          <div class="results-panel" id="profile-panel">
+            <div class="panel-header">
+              <span class="panel-icon" aria-hidden="true">🎓</span>
+              <h2 class="panel-title">Student Profile</h2>
+            </div>
+            <div id="profile-content">
+              <div class="empty-state card">
+                <span class="empty-icon">🎓</span>
+                <p>Student profile will be generated after analysis.</p>
+              </div>
+            </div>
           </div>
-          <div id="recommendations-content">
-            <!-- Populated by JavaScript -->
+          <div class="results-panel" id="analytics-panel">
+            <div class="panel-header">
+              <span class="panel-icon" aria-hidden="true">📊</span>
+              <h2 class="panel-title">Watch Analytics</h2>
+              <button class="btn-accessibility" id="contrast-toggle" aria-pressed="false" title="Toggle high contrast mode">High Contrast</button>
+            </div>
+            <div id="analytics-content">
+              <div class="empty-state card">
+                <span class="empty-icon">📊</span>
+                <p>Analytics will populate as you interact with Reels.</p>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
+    </div>
+
+    <!-- ========== DASHBOARD TAB ========== -->
+    <div class="tab-panel" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+      
+      <!-- Dashboard Stats Grid -->
+      <div id="dashboard-stats">
+        <div class="empty-state card" style="margin-bottom: var(--space-md);">
+          <span class="empty-icon">📊</span>
+          <p>Dashboard data will populate after you analyze Reels in the Feed tab.</p>
+        </div>
       </div>
-    </section>
 
-    <!-- === Student Profile + Analytics === -->
-    <section class="results-section" id="extras-section" aria-label="Student Profile and Analytics">
-      <div class="results-grid">
-        <div class="results-panel" id="profile-panel">
-          <div class="panel-header">
-            <span class="panel-icon" aria-hidden="true">🎓</span>
-            <h2 class="panel-title">Student Profile</h2>
+      <!-- Interest Distribution -->
+      <div id="dashboard-distribution"></div>
+
+      <!-- Accessibility Panel -->
+      <div class="card a11y-panel" style="margin-top: var(--space-md);">
+        <h3 class="section-subtitle">
+          <span class="icon" aria-hidden="true">♿</span>
+          Accessibility Settings (WCAG 2.1 AA)
+        </h3>
+        <div class="a11y-toggles">
+          <div class="a11y-row">
+            <div>
+              <div class="a11y-label-text">High Contrast</div>
+              <div class="a11y-desc">Increases contrast for better visibility</div>
+            </div>
+            <button class="a11y-toggle" id="a11y-contrast" aria-label="Toggle high contrast mode"></button>
           </div>
-          <div id="profile-content"></div>
-        </div>
-        <div class="results-panel" id="analytics-panel">
-          <div class="panel-header">
-            <span class="panel-icon" aria-hidden="true">📊</span>
-            <h2 class="panel-title">Watch Analytics</h2>
-            <button class="btn-accessibility" id="contrast-toggle" aria-pressed="false" title="Toggle high contrast mode">High Contrast</button>
+          <div class="a11y-row">
+            <div>
+              <div class="a11y-label-text">Large Text</div>
+              <div class="a11y-desc">Increases font size across the app</div>
+            </div>
+            <button class="a11y-toggle" id="a11y-large-text" aria-label="Toggle large text mode"></button>
           </div>
-          <div id="analytics-content"></div>
+          <div class="a11y-row">
+            <div>
+              <div class="a11y-label-text">Reduce Animation</div>
+              <div class="a11y-desc">Disables motion effects for sensitivity</div>
+            </div>
+            <button class="a11y-toggle" id="a11y-reduce-motion" aria-label="Toggle reduce animation mode"></button>
+          </div>
         </div>
       </div>
-    </section>
+
+      <!-- Keyboard Shortcuts Reference -->
+      <div class="card" style="margin-top: var(--space-md);">
+        <h3 class="section-subtitle">
+          <span class="icon" aria-hidden="true">⌨️</span>
+          Keyboard Shortcuts
+        </h3>
+        <div class="shortcuts-list">
+          <div class="shortcut-item">
+            <span class="shortcut-key">A</span>
+            <span class="shortcut-desc">Select all Reels</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">T</span>
+            <span class="shortcut-desc">Trigger trap scenario</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">R</span>
+            <span class="shortcut-desc">Reset everything</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">C</span>
+            <span class="shortcut-desc">Toggle high contrast</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">1</span>
+            <span class="shortcut-desc">Switch to Feed tab</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">2</span>
+            <span class="shortcut-desc">Switch to Insights tab</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">3</span>
+            <span class="shortcut-desc">Switch to Dashboard tab</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">?</span>
+            <span class="shortcut-desc">Show this help</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
 
     <!-- === Footer === -->
-    <footer style="text-align: center; padding: var(--space-3xl) 0 var(--space-xl); color: var(--text-muted); font-size: 0.78rem;">
-      <p>ReelMind AI Agent</p>
-      <p style="margin-top: 4px;"><a href="tests.html" style="color: var(--accent-purple); text-decoration: none;">View Test Suite</a></p>
+    <footer style="text-align: center; padding: var(--space-2xl) 0 var(--space-md); color: var(--text-muted); font-size: 0.75rem; border-top: 1px solid var(--border-default); margin-top: var(--space-xl);">
+      <p>ReelSense AI Agent — Built for Hackathon 2026</p>
+      <p style="margin-top: 4px;"><a href="tests.html" style="color: var(--accent-primary); text-decoration: none;">View Test Suite</a></p>
     </footer>
 
   </div>

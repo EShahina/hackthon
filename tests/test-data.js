@@ -1,5 +1,5 @@
 /**
- * ReelMind — Data Integrity Tests
+ * ReelSense — Data Integrity Tests
  * Tests: data structure validation, topic taxonomy, recommendation pool
  */
 import { runner, assert, it, beforeAll, afterAll } from './framework.js';

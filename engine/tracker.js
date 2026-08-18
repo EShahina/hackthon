@@ -1,5 +1,5 @@
 /**
- * ReelMind — Interaction Tracker
+ * ReelSense — Interaction Tracker
  * Tracks user engagement with reels: watch %, time, likes, saves, skips, replays.
  * Builds engagement metrics and interest signals from behavioral data.
  */

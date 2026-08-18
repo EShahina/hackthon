@@ -1,5 +1,5 @@
 /**
- * ReelMind — Semantic Topic Taxonomy
+ * ReelSense — Semantic Topic Taxonomy
  * 
  * Hierarchical topic relationships for deep interest inference.
  * Maps surface-level content signals (from Reel metadata) to broader interest clusters.

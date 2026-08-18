@@ -1,5 +1,5 @@
 /**
- * ReelMind — Test Framework
+ * ReelSense — Test Framework
  * Lightweight browser-based test runner with assertion library
  */
 
