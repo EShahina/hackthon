@@ -1300,6 +1300,7 @@ body::after {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
 
 /* === Reel Action Buttons === */
 .reel-actions {
@@ -1359,4 +1360,3 @@ body.high-contrast { --bg-primary: #000; --bg-secondary: #111; --bg-tertiary: #2
 body.high-contrast .glass-card { background: #111; border: 2px solid #555; }
 body.high-contrast .reel-card { border: 2px solid #777; }
 body.high-contrast .reel-card:hover, body.high-contrast .reel-card.selected { border-color: var(--accent-purple); }
-}

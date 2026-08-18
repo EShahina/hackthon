@@ -120,6 +120,7 @@ class ReelMindApp {
     const grid = document.getElementById('reels-grid');
     if (grid) {
       grid.addEventListener('click', (e) => {
+        if (e.target.closest('.reel-action-btn')) return;
         const card = e.target.closest('.reel-card');
         if (card) this.toggleReelSelection(card);
       });
@@ -173,26 +174,28 @@ class ReelMindApp {
     }
 
     // Interaction buttons (like, save, share, skip)
-    grid.addEventListener('click', (e) => {
-      const btn = e.target.closest('.reel-action-btn');
-      if (!btn) return;
-      e.stopPropagation();
-      const reelId = btn.dataset.reelId;
-      if (btn.classList.contains('like-btn')) {
-        const liked = this.tracker.toggleLike(reelId);
-        btn.classList.toggle('active', liked);
-      } else if (btn.classList.contains('save-btn')) {
-        const saved = this.tracker.toggleSave(reelId);
-        btn.classList.toggle('active', saved);
-      } else if (btn.classList.contains('share-btn')) {
-        this.tracker.share(reelId);
-        btn.classList.add('active');
-      } else if (btn.classList.contains('skip-btn')) {
-        this.tracker.skip(reelId);
-        const card = document.querySelector(`[data-reel-id="${reelId}"]`);
-        if (card) card.classList.add('skipped');
-      }
-    });
+      grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.reel-action-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        e.preventDefault();
+        const reelId = btn.dataset.reelId;
+        this.tracker.trackReel(reelId);
+        if (btn.classList.contains('like-btn')) {
+          const liked = this.tracker.toggleLike(reelId);
+          btn.classList.toggle('active', liked);
+        } else if (btn.classList.contains('save-btn')) {
+          const saved = this.tracker.toggleSave(reelId);
+          btn.classList.toggle('active', saved);
+        } else if (btn.classList.contains('share-btn')) {
+          this.tracker.share(reelId);
+          btn.classList.add('active');
+        } else if (btn.classList.contains('skip-btn')) {
+          this.tracker.skip(reelId);
+          const card = document.querySelector(`[data-reel-id="${reelId}"]`);
+          if (card) card.classList.add('skipped');
+        }
+      }, true);
   }
 
   /**
@@ -291,13 +294,15 @@ class ReelMindApp {
   _scheduleAutoAnalyze() {
     clearTimeout(this.autoAnalyzeTimer);
     if (this.selectedReels.size === 0) {
-      // If no reels selected, reset results
       const resultsSection = document.getElementById('results-section');
       if (resultsSection) resultsSection.classList.remove('visible');
+      const extrasSection = document.getElementById('extras-section');
+      if (extrasSection) extrasSection.classList.remove('visible');
       document.getElementById('analysis-content').innerHTML = '';
       document.getElementById('recommendations-content').innerHTML = '';
       this.analysisResult = null;
       this.recommendations = [];
+      this.studentProfile = null;
       return;
     }
     this.autoAnalyzeTimer = setTimeout(() => this.runAnalysis(), 500);
@@ -397,6 +402,9 @@ class ReelMindApp {
       );
       this.renderStudentProfile();
       this.renderAnalytics();
+
+      const extrasSection = document.getElementById('extras-section');
+      if (extrasSection) extrasSection.classList.add('visible');
     } catch (error) {
       console.error('Analysis failed:', error);
       security.logEvent('analysis_error', { error: error.message });
@@ -674,6 +682,7 @@ class ReelMindApp {
     this.clearSelections();
     this.analysisResult = null;
     this.recommendations = [];
+    this.studentProfile = null;
 
     const resultsSection = document.getElementById('results-section');
     if (resultsSection) {
@@ -682,8 +691,9 @@ class ReelMindApp {
 
     document.getElementById('analysis-content').innerHTML = '';
     document.getElementById('recommendations-content').innerHTML = '';
+    document.getElementById('profile-content').innerHTML = '';
+    document.getElementById('analytics-content').innerHTML = '';
 
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
