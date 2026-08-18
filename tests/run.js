@@ -12,7 +12,7 @@
   async function loadModules() {
     statusEl.textContent = 'Loading modules...';
     try {
-      var topics = await import('./data/topics.js');
+      var topics = await import('../data/topics.js');
       TOPIC_HIERARCHY = topics.TOPIC_HIERARCHY;
       TOPIC_TO_CLUSTER = topics.TOPIC_TO_CLUSTER;
       SIGNAL_WEIGHTS = topics.SIGNAL_WEIGHTS;
@@ -21,17 +21,17 @@
       CATEGORY_META = topics.CATEGORY_META;
       DIFFICULTY_META = topics.DIFFICULTY_META;
 
-      var reels = await import('./data/reels.js');
+      var reels = await import('../data/reels.js');
       SAMPLE_REELS = reels.SAMPLE_REELS;
       RECOMMENDATION_POOL = reels.RECOMMENDATION_POOL;
 
-      var inf = await import('./engine/inference.js');
+      var inf = await import('../engine/inference.js');
       InterestInferenceEngine = inf.InterestInferenceEngine;
 
-      var rec = await import('./engine/recommender.js');
+      var rec = await import('../engine/recommender.js');
       RecommendationEngine = rec.RecommendationEngine;
 
-      var sec = await import('./engine/security.js');
+      var sec = await import('../engine/security.js');
       SecurityManager = sec.SecurityManager;
 
       modulesLoaded = true;
